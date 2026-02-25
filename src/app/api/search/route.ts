@@ -1,33 +1,37 @@
 export const runtime = 'edge';
 
-export async function GET() {
-  // 测试版 - 固定返回4首周杰伦歌曲（让你看到界面正常工作）
-  const songs = [
-    {
-      title: "稻香",
-      artist: "周杰伦",
-      url: "https://music.163.com/song/media/outer/url?id=186016.mp3",
-      downloadUrl: "https://music.163.com/song/media/outer/url?id=186016.mp3"
-    },
-    {
-      title: "晴天",
-      artist: "周杰伦",
-      url: "https://music.163.com/song/media/outer/url?id=186001.mp3",
-      downloadUrl: "https://music.163.com/song/media/outer/url?id=186001.mp3"
-    },
-    {
-      title: "七里香",
-      artist: "周杰伦",
-      url: "https://music.163.com/song/media/outer/url?id=186003.mp3",
-      downloadUrl: "https://music.163.com/song/media/outer/url?id=186003.mp3"
-    },
-    {
-      title: "简单爱",
-      artist: "周杰伦",
-      url: "https://music.163.com/song/media/outer/url?id=186002.mp3",
-      downloadUrl: "https://music.163.com/song/media/outer/url?id=186002.mp3"
-    }
-  ];
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const query = searchParams.get('query') || '';
+  const source = searchParams.get('source') || 'jianbing-wangyi';
 
-  return Response.json(songs);
+  if (!query) return Response.json([]);
+
+  // 使用目前最稳定、可直接试听下载的接口
+  const typeMap: Record<string, string> = {
+    'jianbing-wangyi': 'netease',
+    'qq': 'qq',
+    'jianbing-kugou': 'kugou',
+    'liyin': 'netease'
+  };
+
+  const type = typeMap[source] || 'netease';
+
+  const url = `https://api.metingapi.131213.xyz/api?server=${type}&type=search&name=${encodeURIComponent(query)}`;
+
+  try {
+    const res = await fetch(url);
+    const data = await res.json();
+
+    const songs = data.map((item: any) => ({
+      title: item.name,
+      artist: item.artist,
+      url: item.url,           // 直接可试听的mp3链接
+      downloadUrl: item.url    // 直接可下载的mp3链接
+    }));
+
+    return Response.json(songs);
+  } catch (e) {
+    return Response.json([]);
+  }
 }
