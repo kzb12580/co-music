@@ -7,9 +7,16 @@ export async function GET(request: Request) {
 
   if (!query) return Response.json([]);
 
-  // 使用目前最稳定的公开音乐搜索接口（支持网易云、QQ、酷狗等）
-  const platform = source.includes('qq') ? 'qq' : source.includes('kugou') ? 'kugou' : 'netease';
-  const url = `https://api.injahow.cn/music/search?text=${encodeURIComponent(query)}&type=${platform}&page=1&limit=30`;
+  // 使用目前最稳定免费的音乐搜索接口（支持网易、QQ、酷狗）
+  const typeMap: Record<string, string> = {
+    'jianbing-wangyi': 'netease',
+    'qq': 'qq',
+    'jianbing-kugou': 'kugou',
+    'liyin': 'netease'
+  };
+
+  const type = typeMap[source] || 'netease';
+  const url = `https://metingapi.131213.xyz/api?server=${type}&type=search&name=${encodeURIComponent(query)}`;
 
   try {
     const res = await fetch(url, {
@@ -17,8 +24,8 @@ export async function GET(request: Request) {
     });
     const data = await res.json();
 
-    const songs = (data.data || []).map((item: any) => ({
-      title: item.name || item.title,
+    const songs = data.map((item: any) => ({
+      title: item.name,
       artist: item.artist,
       url: item.url,           // 试听链接
       downloadUrl: item.url    // 下载链接
@@ -26,7 +33,6 @@ export async function GET(request: Request) {
 
     return Response.json(songs);
   } catch (e) {
-    console.error(e);
     return Response.json([]);
   }
 }
